@@ -37,7 +37,7 @@ def create_app():
     jwt.init_app(app)
 
     # ⚡ CORS global appliqué avant Api
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    CORS(app, resources={r"/api/*": {"origins": "https://hbnb-v2-frontend-79ym.vercel.app"}})
 
     # Import des modèles pour créer les tables si nécessaire
     from app.models import user, place, amenity, associations, reservation, review
