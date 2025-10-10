@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: hbnb_v2_backend
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn run:app"
+    envVars:
+      - key: SQLALCHEMY_DATABASE_URI
+        value: "postgresql://myuser:mypassword@db:5432/hbnb_v2_db"
+      - key: FLASK_SECRET_KEY
+        value: "super-secret-flask"
+      - key: JWT_SECRET_KEY
+        value: "super-secret-jwt"
+      - key: FLASK_ENV
+        value: "development"
+      - key: MAIL_SERVER
+        value: "smtp.gmail.com"
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USE_TLS
+        value: "True"
+      - key: MAIL_USE_SSL
+        value: "False"
+      - key: MAIL_USERNAME
+        value: "teckivoire@gmail.com"
+      - key: MAIL_PASSWORD
+        value: "ynsbluupsuxntxrr"
+      - key: MAIL_DEFAULT_SENDER
+        value: "teckivoire@gmail.com"
