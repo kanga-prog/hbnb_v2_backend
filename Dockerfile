@@ -1,5 +1,5 @@
 # 🔹 Image Python légère
-FROM python:3.11.8-slim
+FROM python:3.11-slim
 
 # 🔹 Variables d'environnement pour pip
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -9,19 +9,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # 🔹 Installer les dépendances système nécessaires
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# 🔹 Copier uniquement les requirements pour bénéficier du cache Docker
+# 🔹 Copier et installer les requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 🔹 Copier l'ensemble de l'application
+# 🔹 Copier le code de l'application
 COPY . .
 
-# 🔹 Exposer le port utilisé par Gunicorn
-EXPOSE 5000
+# 🔹 Exposer le port défini par Render
+EXPOSE $PORT
 
-# 🔹 Commande par défaut pour lancer le backend
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "run:app"]
+# 🔹 Lancer Gunicorn en écoutant sur le port de Render
+CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "run:app"]
