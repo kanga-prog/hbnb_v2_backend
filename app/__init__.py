@@ -55,7 +55,7 @@ def create_app():
             "https://hbnb-v2-frontend-79ym.vercel.app",
             "http://localhost:5173"  # pour le dev local
         ]
-    }})
+    }}, supports_credentials=True)
 
     # -----------------------------
     # 📦 IMPORT DES MODÈLES
