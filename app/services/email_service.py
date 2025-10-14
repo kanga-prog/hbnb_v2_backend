@@ -4,7 +4,7 @@ import requests
 
 # CLÉS API BREVO
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
-BREVO_SENDER = os.getenv("BREVO_SENDER", "TECKIVOIRE@GMAIL.COM")
+BREVO_SENDER = os.getenv("BREVO_SENDER", "no-reply@brevo.com")
 
 # Vérification initiale
 if not BREVO_API_KEY:
