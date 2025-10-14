@@ -1,10 +1,11 @@
-# APP/__INIT__.PY
 import os
+import requests
+from threading import Timer
 from datetime import timedelta
 from dotenv import load_dotenv
 from flask import Flask, send_from_directory
 from flask_restx import Api
-from flask_cors import CORS  # ⚡ CORS direct ici
+from flask_cors import CORS
 
 from .extensions import db, migrate, mail, jwt
 
@@ -16,8 +17,21 @@ from app.routes.reviews import api as REVIEWS_NS
 from app.routes.users import api as USERS_NS
 from app.routes.auth import api as AUTH_NS
 
-# Charger les variables d'environnement (.env)
+# Charger les variables d'environnement
 load_dotenv()
+
+
+# ==============================
+# 🕓 Keep Alive interne Render
+# ==============================
+def keep_alive():
+    """Empêche Render de mettre le conteneur en veille"""
+    try:
+        requests.get("https://hbnb-v2-backend.onrender.com/")
+        print("[KeepAlive] 🔄 Ping réussi ✅")
+    except Exception as e:
+        print(f"[KeepAlive] ⚠️ Échec du ping : {e}")
+    Timer(300, keep_alive).start()  # Relance toutes les 5 minutes (300s)
 
 
 def create_app():
@@ -28,14 +42,9 @@ def create_app():
     # 🔧 CONFIGURATION
     # -----------------------------
     app.config.from_object("config.Config")
-
-    # Clé JWT
-    app.config["JWT_SECRET_KEY"] = os.getenv(
-        "JWT_SECRET_KEY", app.config.get("SECRET_KEY")
-    )
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", app.config.get("SECRET_KEY"))
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 
-    # ✅ Ne remplace la valeur que si la variable est définie
     if os.getenv("SQLALCHEMY_DATABASE_URI"):
         app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
 
@@ -48,7 +57,7 @@ def create_app():
     jwt.init_app(app)
 
     # -----------------------------
-    # 🌍 CORS GLOBAL (Mise à jour)
+    # 🌍 CORS GLOBAL
     # -----------------------------
     CORS(
         app,
@@ -56,7 +65,7 @@ def create_app():
             r"/api/*": {
                 "origins": [
                     "https://hbnb-v2-frontend-79ym.vercel.app",
-                    "http://localhost:5173",  # pour le dev local
+                    "http://localhost:5173",
                 ]
             }
         },
@@ -73,14 +82,8 @@ def create_app():
     # -----------------------------
     # 🚀 API REST
     # -----------------------------
-    api = Api(
-        app,
-        version="1.0",
-        title="HBnB API",
-        description="API HBnB avec Flask-RESTx",
-    )
+    api = Api(app, version="1.0", title="HBnB API", description="API HBnB avec Flask-RESTx")
 
-    # Enregistrement des namespaces
     api.add_namespace(PLACES_NS, path="/api/places")
     api.add_namespace(AMENITIES_NS, path="/api/amenities")
     api.add_namespace(RESERVATIONS_NS, path="/api/reservations")
@@ -89,11 +92,10 @@ def create_app():
     api.add_namespace(AUTH_NS, path="/api/auth")
 
     # -----------------------------
-    # 🧩 Fix global CORS headers (important pour Render)
+    # 🧩 Fix global CORS headers
     # -----------------------------
     @app.after_request
     def add_cors_headers(response):
-        """Ajoute les en-têtes CORS à toutes les réponses"""
         response.headers["Access-Control-Allow-Origin"] = "https://hbnb-v2-frontend-79ym.vercel.app"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
         response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
@@ -105,8 +107,14 @@ def create_app():
     # -----------------------------
     @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):
-        """Servir les fichiers uploadés depuis /uploads"""
         upload_folder = os.path.join(app.root_path, "uploads")
         return send_from_directory(upload_folder, filename)
+
+    # -----------------------------
+    # 🕓 Lancement du keep-alive
+    # -----------------------------
+    if os.getenv("RENDER") or os.getenv("KEEP_ALIVE", "true") == "true":
+        print("[KeepAlive] Service de ping activé 🚀")
+        Timer(10, keep_alive).start()  # Démarre 10 secondes après lancement
 
     return app
