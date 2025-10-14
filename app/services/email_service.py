@@ -2,19 +2,25 @@
 import os
 import requests
 
-# Clés API Brevo
+# CLÉS API BREVO
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
-BREVO_SENDER = os.getenv("BREVO_SENDER", "teckivoire@gmail.com")
+BREVO_SENDER = os.getenv("BREVO_SENDER", "TECKIVOIRE@GMAIL.COM")
 
-# Debug temporaire pour vérifier la lecture des variables
-print("DEBUG - BREVO_API_KEY:", BREVO_API_KEY)
-print("DEBUG - BREVO_SENDER:", BREVO_SENDER)
+# Vérification initiale
+if not BREVO_API_KEY:
+    print("❌ ERREUR: BREVO_API_KEY non définie !")
+if not BREVO_SENDER:
+    print("❌ ERREUR: BREVO_SENDER non défini !")
 
 def send_email(subject: str, to: str, body: str):
-    """Envoie un e-mail via l’API Brevo"""
+    """ENVOIE UN E-MAIL VIA L’API BREVO AVEC LOGS DÉTAILLÉS"""
+    if not BREVO_API_KEY or not BREVO_SENDER:
+        print("❌ Impossible d’envoyer l’e-mail: clé ou expéditeur manquant")
+        return False
+
     url = "https://api.brevo.com/v3/smtp/email"
     payload = {
-        "sender": {"email": BREVO_SENDER, "name": "HBnB Auth"},
+        "sender": {"email": BREVO_SENDER, "name": "HBNB AUTH"},
         "to": [{"email": to}],
         "subject": subject,
         "htmlContent": f"<p>{body}</p>"
@@ -26,22 +32,25 @@ def send_email(subject: str, to: str, body: str):
     }
     try:
         response = requests.post(url, json=payload, headers=headers)
+        print("DEBUG - Brevo Response:", response.status_code, response.text)
         response.raise_for_status()
         return True
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ ERREUR HTTP Brevo ({response.status_code}): {response.text}")
     except Exception as e:
-        print("❌ Erreur envoi e-mail:", e)
-        return False
+        print("❌ ERREUR GÉNÉRALE ENVOI E-MAIL:", e)
+    return False
 
 
 def send_2fa_code(email, code):
-    """Envoie le code de vérification 2FA"""
-    subject = "Votre code de vérification HBnB"
+    """ENVOIE LE CODE DE VÉRIFICATION 2FA"""
+    subject = "VOTRE CODE DE VÉRIFICATION HBNB"
     body = f"Votre code de vérification est : <b>{code}</b>. Il expire dans 10 minutes."
     return send_email(subject, email, body)
 
 
 def send_reset_code(email, code):
-    """Envoie le code de réinitialisation du mot de passe"""
-    subject = "Réinitialisation de votre mot de passe"
+    """ENVOIE LE CODE DE RÉINITIALISATION DU MOT DE PASSE"""
+    subject = "RÉINITIALISATION DE VOTRE MOT DE PASSE"
     body = f"Voici votre code de réinitialisation : <b>{code}</b>. Il expire dans 10 minutes."
     return send_email(subject, email, body)
