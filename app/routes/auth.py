@@ -1,37 +1,20 @@
 import random
 from datetime import datetime, timedelta
 
-from flask import request, jsonify
+from flask import request
 from app.facades.user_facade import UserFacade
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import create_access_token
 from werkzeug.security import check_password_hash
 from app.models.user import User
-from app.extensions import db,mail
-from flask_mail import Message
+from app.extensions import db
+from app.services.email_service import send_2fa_code, send_reset_code
 
 api = Namespace('auth', description='Authentication operations')
 
-# Temp store (à remplacer par Redis ou DB en prod)
+# === Temp store (à remplacer par Redis ou DB en prod) ===
 two_factor_store = {}
 password_reset_store = {}
-
-# === UTILITY ===
-def send_2fa_code(email, code):
-    msg = Message(
-        subject="Your 2FA Code",
-        recipients=[email],
-        body=f"Votre code de vérification 2FA est : {code}"
-    )
-    mail.send(msg)
-
-def send_reset_code(email, code):
-    msg = Message(
-        subject="Réinitialisation de votre mot de passe",
-        recipients=[email],
-        body=f"Votre code pour réinitialiser le mot de passe est : {code}"
-    )
-    mail.send(msg)
 
 # === MODELS ===
 register_model = api.model('Register', {
@@ -64,6 +47,7 @@ reset_password_model = api.model("ResetPassword", {
 })
 
 # === ROUTES ===
+
 @api.route('/register')
 class Register(Resource):
     @api.expect(register_model)
@@ -103,6 +87,7 @@ class Register(Resource):
             db.session.rollback()
             return {'message': 'Internal server error', 'error': str(e)}, 500
 
+
 @api.route('/login')
 class Login(Resource):
     @api.expect(login_model)
@@ -131,6 +116,7 @@ class Login(Resource):
 
         return {'message': '2FA code sent to your email'}, 200
 
+
 @api.route('/verify-2fa')
 class Verify2FA(Resource):
     @api.expect(verify_model)
@@ -153,7 +139,6 @@ class Verify2FA(Resource):
         if not user:
             return {"message": "User not found"}, 404
 
-        # ✅ JWT avec seulement l’essentiel
         access_token = create_access_token(
             identity=str(user.id),
             additional_claims={
@@ -163,8 +148,8 @@ class Verify2FA(Resource):
         )
 
         del two_factor_store[email]
-
         return {"access_token": access_token}, 200
+
 
 @api.route("/forgot_password")
 class ForgotPassword(Resource):
@@ -180,7 +165,6 @@ class ForgotPassword(Resource):
         if not user:
             return {"msg": "User not found"}, 404
 
-        # Génération du code temporaire
         code = str(random.randint(100000, 999999))
         expires = datetime.utcnow() + timedelta(minutes=10)
 
@@ -192,6 +176,7 @@ class ForgotPassword(Resource):
             return {"msg": f"Failed to send code: {str(e)}"}, 500
 
         return {"msg": "Reset code sent to email"}, 200
+
 
 @api.route("/reset_password")
 class ResetPassword(Resource):
@@ -214,11 +199,9 @@ class ResetPassword(Resource):
         if code != record["code"]:
             return {"msg": "Invalid code"}, 401
 
-        # Mise à jour du mot de passe
         UserFacade.update_user(record["user_id"], password=new_password)
         del password_reset_store[email]
 
-        # Optionnel : générer JWT pour connexion immédiate
         access_token = create_access_token(identity=str(record["user_id"]))
 
         return {"msg": "Password reset successfully", "access_token": access_token}, 200
