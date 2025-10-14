@@ -2,11 +2,13 @@
 import os
 import requests
 
-# Tu peux utiliser Brevo, ou garder Flask-Mail si ça marche sur Render
-# Voici une version compatible avec Brevo (Sendinblue API)
-
+# Clés API Brevo
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 BREVO_SENDER = os.getenv("BREVO_SENDER", "teckivoire@gmail.com")
+
+# Debug temporaire pour vérifier la lecture des variables
+print("DEBUG - BREVO_API_KEY:", BREVO_API_KEY)
+print("DEBUG - BREVO_SENDER:", BREVO_SENDER)
 
 def send_email(subject: str, to: str, body: str):
     """Envoie un e-mail via l’API Brevo"""
