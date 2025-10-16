@@ -18,5 +18,9 @@ def save_file(file, subfolder=""):
     file.save(filepath)
 
     # 🔗 Génère une URL absolue HTTPS (selon environnement)
-    base_url = os.getenv("BASE_URL", "https://hbnb-v2-backend.onrender.com")
+    if "onrender.com" in os.getenv("BASE_URL", "") or os.getenv("RENDER"):
+          base_url = "BASE_URL", "https://hbnb-v2-backend.onrender.com"
+    else:
+        base_url = "http://127.0.0.1:5000"   
+           
     return f"{base_url}/uploads/{subfolder}/{filename}" if subfolder else f"{base_url}/uploads/{filename}"
