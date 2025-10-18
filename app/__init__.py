@@ -20,6 +20,9 @@ from app.routes.auth import api as AUTH_NS
 # Charger les variables d'environnement
 load_dotenv()
 
+# URL de production backend
+PROD_BASE_URL = "https://hbnb-v2-backend.onrender.com"
+
 
 # ==============================
 # 🕓 Keep Alive interne Render
@@ -27,13 +30,49 @@ load_dotenv()
 def keep_alive():
     """Empêche Render de mettre le conteneur en veille"""
     try:
-        requests.get("https://hbnb-v2-backend.onrender.com/")
+        requests.get(PROD_BASE_URL)
         print("[KeepAlive] 🔄 Ping réussi ✅")
     except Exception as e:
         print(f"[KeepAlive] ⚠️ Échec du ping : {e}")
     Timer(300, keep_alive).start()  # Relance toutes les 5 minutes (300s)
 
 
+# ==============================
+# 🔧 Fonction pour corriger les URLs
+# ==============================
+def fix_urls_on_startup():
+    """Corrige automatiquement les URLs locales ou relatives dans la BDD"""
+    from app.models.user import User
+    from app.models.place import PlaceImage
+
+    updated_users = 0
+    for u in User.query.all():
+        if u.avatar:
+            if u.avatar.startswith("http://127.0.0.1:5000"):
+                u.avatar = u.avatar.replace("http://127.0.0.1:5000", PROD_BASE_URL)
+                updated_users += 1
+            elif u.avatar.startswith("/uploads"):
+                u.avatar = f"{PROD_BASE_URL}{u.avatar}"
+                updated_users += 1
+
+    updated_images = 0
+    for img in PlaceImage.query.all():
+        if img.url:
+            if img.url.startswith("http://127.0.0.1:5000"):
+                img.url = img.url.replace("http://127.0.0.1:5000", PROD_BASE_URL)
+                updated_images += 1
+            elif img.url.startswith("/uploads"):
+                img.url = f"{PROD_BASE_URL}{img.url}"
+                updated_images += 1
+
+    db.session.commit()
+    print(f"[✔] {updated_users} avatars utilisateurs mis à jour.")
+    print(f"[✔] {updated_images} images de lieux mises à jour.")
+
+
+# ==============================
+# 🔧 Application Factory
+# ==============================
 def create_app():
     """Application Factory Flask pour HBnB."""
     app = Flask(__name__)
@@ -61,14 +100,10 @@ def create_app():
     # -----------------------------
     CORS(
         app,
-        resources={
-            r"/api/*": {
-                "origins": [
-                    "https://hbnb-v2-frontend-79ym.vercel.app",
-                    "http://localhost:5173",
-                ]
-            }
-        },
+        resources={r"/api/*": {"origins": [
+            "https://hbnb-v2-frontend-79ym.vercel.app",
+            "http://localhost:5173",
+        ]}},
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -83,7 +118,6 @@ def create_app():
     # 🚀 API REST
     # -----------------------------
     api = Api(app, version="1.0", title="HBnB API", description="API HBnB avec Flask-RESTx")
-
     api.add_namespace(PLACES_NS, path="/api/places")
     api.add_namespace(AMENITIES_NS, path="/api/amenities")
     api.add_namespace(RESERVATIONS_NS, path="/api/reservations")
@@ -116,5 +150,11 @@ def create_app():
     if os.getenv("RENDER") or os.getenv("KEEP_ALIVE", "true") == "true":
         print("[KeepAlive] Service de ping activé 🚀")
         Timer(10, keep_alive).start()  # Démarre 10 secondes après lancement
+
+    # -----------------------------
+    # 🔧 Correction automatique des URLs
+    # -----------------------------
+    with app.app_context():
+        fix_urls_on_startup()
 
     return app

@@ -2,7 +2,9 @@ services:
   - type: web
     name: hbnb_v2_backend
     env: python
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: |
+      pip install -r requirements.txt
+      python3 -m app.scripts.fix_urls_prod
     startCommand: "gunicorn run:app"
     envVars:
       - key: SQLALCHEMY_DATABASE_URI
@@ -12,7 +14,7 @@ services:
       - key: JWT_SECRET_KEY
         value: "super-secret-jwt"
       - key: FLASK_ENV
-        value: "development"
+        value: "production"
       - key: MAIL_SERVER
         value: "smtp.gmail.com"
       - key: MAIL_PORT
@@ -27,3 +29,7 @@ services:
         value: "ynsbluupsuxntxrr"
       - key: MAIL_DEFAULT_SENDER
         value: "teckivoire@gmail.com"
+      - key: BREVO_API_KEY
+        value: "PLACEHOLDER_FOR_BREVO_API_KEY"
+      - key: BASE_URL
+        value: "https://hbnb-v2-backend.onrender.com"
